@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Insert Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 500px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+        .form-group input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: background-color 0.3s;
+        }
+        .form-group input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <form action="/insert" method="post">
+
+            <div class="form-group">
+                <label for="Subject_Name">Enter District Name:</label>
+                <input type="text" id="Station_Names" name="Station_Names">
+            </div>
+
+            <div class="form-group">
+                <label for="Subject_Name">Month:</label>
+                <input type="text" id="Month" name="Month">
+            </div>
+            <div class="form-group">
+                <label for="final_topic">YEAR:</label>
+                <input type="text" id="YEAR" name="YEAR">
+            </div>
+            <div class="form-group">
+                <label for="chapter_Name">Max Temp:</label>
+                <input type="text" id="Max_Temp" name="Max_Temp">
+            </div>
+            <div class="form-group">
+                <label for="main_topic">Min Temp:</label>
+                <input type="text" id="Min_Temp" name="Min_Temp">
+            </div>
+            <div class="form-group">
+                <label for="secondary_topic">Rainfall:</label>
+                <input type="text" id="Rainfall" name="Rainfall">
+            </div>
+            <div class="form-group">
+                <label for="final_topic">Relative Humidity:</label>
+                <input type="text" id="Relative_Humidity" name="Relative_Humidity">
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Insert Data">
+            </div>
+        </form>
+    </div>
+</body>
+</html>

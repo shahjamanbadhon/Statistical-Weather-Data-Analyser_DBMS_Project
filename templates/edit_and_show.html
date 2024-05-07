@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: fit-content;
+            min-width: 600px;
+            min-height: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        select,
+        button {
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .editBtn {
+            padding: 6px 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .editBtn:hover {
+            background-color: #0056b3;
+        }
+
+        .updateBtn {
+            padding: 6px 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .updateBtn:hover {
+            background-color: #218838;
+        }
+
+        .navigateBtn {
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .navigateBtn:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Weather Data</h1>
+        <label for="stationSelector">Select District:</label>
+        <select id="stationSelector"></select>
+        <br>
+        <label for="yearsSelector">Select Year:</label>
+        <select id="yearsSelector"></select>
+        <br>
+        <button id="submitBtn">Submit</button>
+        <br>
+        <div id="weatherData"></div>
+        <button id="navigateToInsertScreen" class="navigateBtn">Go to Insert Screen</button>
+    </div>
+
+
+    <script>
+        document.getElementById("navigateToInsertScreen").addEventListener("click", function () {
+            window.location.href = 'insert-data';
+        });
+    </script>
+
+
+    <script type="text/javascript">
+
+
+
+
+        function createInputField(value) {
+            var input = document.createElement("input");
+            input.type = "text";
+            input.value = value;
+            return input;
+        }
+
+        function updateCellData(row, fieldName, newValue) {
+            row.querySelector("." + fieldName).innerText = newValue;
+        }
+
+        function editRow(row) {
+
+            var cells = row.querySelectorAll("td:not(:first-child)");
+            cells.forEach(function (cell, index) {
+
+                if (index < cells.length - 1) {
+                    var currentValue = cell.innerText;
+                    var input = createInputField(currentValue);
+                    cell.innerText = "";
+                    cell.appendChild(input);
+                }
+            });
+
+
+            var updateBtn = document.createElement("button");
+            updateBtn.textContent = "Update";
+            updateBtn.classList.add("updateBtn");
+            row.appendChild(updateBtn);
+        }
+
+
+        fetch('/stations')
+            .then(response => response.json())
+            .then(({ stations }) => {
+                var dropdown = document.getElementById('stationSelector');
+                stations.forEach(station => {
+                    var option = document.createElement('option');
+                    option.text = station;
+                    option.value = station;
+                    dropdown.add(option);
+                });
+            });
+
+
+        fetch('/years')
+            .then(response => response.json())
+            .then(({ years }) => {
+                var dropdown = document.getElementById('yearsSelector');
+                years.forEach(year => {
+                    var option = document.createElement('option');
+                    option.text = year;
+                    option.value = year;
+                    dropdown.add(option);
+                });
+            });
+
+        document.getElementById("submitBtn").addEventListener("click", function () {
+            var stationName = document.getElementById("stationSelector").value;
+            var year = document.getElementById("yearsSelector").value;
+
+            fetch(`/data/${stationName}/${year}`)
+                .then(response => response.json())
+                .then(data => {
+                    var html = "<h2>" + data.station_name + " - " + data.year + "</h2>";
+                    html += "<table border='1'>";
+                    html += "<tr><th>Month</th><th>Max Temp</th><th>Min Temp</th><th>Rainfall</th><th>Relative Humidity</th><th>Edit</th></tr>";
+                    data.data.forEach(entry => {
+                        html += "<tr>";
+                        html += "<td class='month'>" + entry.month + "</td>";
+                        html += "<td class='max_temp'>" + entry.max_temp + "</td>";
+                        html += "<td class='min_temp'>" + entry.min_temp + "</td>";
+                        html += "<td class='rainfall'>" + entry.rainfall + "</td>";
+                        html += "<td class='relative_humidity'>" + entry.relative_humidity + "</td>";
+                        html += "<td><button class='editBtn'>Edit</button></td>";
+                        html += "</tr>";
+                    });
+                    html += "</table>";
+                    document.getElementById("weatherData").innerHTML = html;
+
+                    var editButtons = document.querySelectorAll(".editBtn");
+                    editButtons.forEach(function (button) {
+                        button.addEventListener("click", function () {
+                            var row = this.closest("tr");
+                            editRow(row);
+                        });
+                    });
+                });
+        });
+
+
+        document.getElementById("weatherData").addEventListener("click", function (event) {
+            if (event.target.classList.contains("updateBtn")) {
+                var row = event.target.closest("tr");
+                var month = row.querySelector(".month").innerText;
+                var maxTemp = row.querySelector(".max_temp input").value;
+                var minTemp = row.querySelector(".min_temp input").value;
+                var rainfall = row.querySelector(".rainfall input").value;
+                var relativeHumidity = row.querySelector(".relative_humidity input").value;
+
+
+                fetch("/update", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        month: month,
+                        max_temp: maxTemp,
+                        min_temp: minTemp,
+                        rainfall: rainfall,
+                        relative_humidity: relativeHumidity
+                    })
+                }).then(response => {
+                    if (response.ok) {
+
+                        alert("Data updated successfully!");
+                    } else {
+
+                        alert("Error occurred while updating data!");
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

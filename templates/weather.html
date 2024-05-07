@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Weather Station Data</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        #linechart_material {
+            margin-top: 20px;
+            width: 100%;
+            height: 500px;
+        }
+
+
+        .navigateBtn {
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .navigateBtn:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Weather Station Data</h1>
+        <select id="stationSelector" onchange="drawCurveTypes(this.value)"></select>
+        <div id="linechart_material"></div>
+        <button id="navigateToUpdateScreen" class="navigateBtn"> Go to Update Screen</button>
+    </div>
+    <script>
+        document.getElementById("navigateToUpdateScreen").addEventListener("click", function() {
+
+            window.location.href = 'update-data';
+        });
+    </script>
+    <script type="text/javascript">
+
+
+
+        google.charts.load('current', {
+            packages: ['corechart', 'line']
+        });
+
+        function drawCurveTypes(stationName) {
+            fetch(`/data/${stationName}`)
+                .then(response => response.json())
+                .then(data => {
+
+                    var jsonData = data;
+
+                    var dataTable = new google.visualization.DataTable();
+                    dataTable.addColumn('string', 'Month');
+                    jsonData.years.forEach(year => dataTable.addColumn('number', year.toString()));
+
+                    jsonData.months.forEach((month, index) => {
+                        var rowData = [month];
+                        jsonData.data.forEach(dataPoint => {
+                            if (dataPoint.month === month) {
+                                rowData.push(parseFloat(dataPoint.max_temp));
+                            }
+                        });
+                        dataTable.addRow(rowData);
+                    });
+
+                    var options = {
+                        chart: {
+                            title: 'Weather information of Bangladesh',
+                            subtitle: '63 years data'
+                        },
+                        width: '100%',
+                        height: 500
+                    };
+
+                    var chart = new google.charts.Line(document.getElementById('linechart_material'));
+                    chart.draw(dataTable, google.charts.Line.convertOptions(options));
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        fetch('/stations')
+            .then(response => response.json())
+            .then(({
+                stations
+            }) => {
+                var dropdown = document.getElementById('stationSelector');
+                stations.forEach(station => {
+                    var option = document.createElement('option');
+                    option.text = station;
+                    option.value = station;
+                    dropdown.add(option);
+                });
+            });
+
+        google.charts.setOnLoadCallback(() => {
+            var firstStation = document.getElementById('stationSelector').value;
+            drawCurveTypes(firstStation);
+        });
+    </script>
+</body>
+
+</html>

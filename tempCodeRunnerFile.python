@@ -1,0 +1,141 @@
+import mysql.connector
+
+from flask import Flask, render_template, jsonify, request
+
+app = Flask(__name__, template_folder="templates", static_folder="static")
+
+db_config = {
+    "user": "root",
+    "password": "Avijit@12#12",
+    "host": "localhost",
+    "database": "varsity_one",
+}
+
+def get_db_connection():
+    connection = mysql.connector.connect(**db_config)
+    return connection
+
+@app.route("/data/<string:stationName>")
+def get_datas(stationName):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT DISTINCT month FROM weather_data ORDER BY STR_TO_DATE(month, '%M')"
+    )
+    months = [row["month"] for row in cursor.fetchall()]
+
+    cursor.execute(
+        "SELECT DISTINCT year FROM weather_data WHERE Station_Names = %s ORDER BY year",
+        (stationName,),
+    )
+    years = [row["year"] for row in cursor.fetchall()]
+
+    data = []
+
+    query = """
+    SELECT month, year, max_temp, min_temp, rainfall, relative_humidity
+    FROM weather_data
+    WHERE Station_Names = %s
+    """
+    cursor.execute(query, (stationName,))
+
+    for row in cursor.fetchall():
+        data.append({
+            "month": row["month"],
+            "max_temp": row["max_temp"],
+            "min_temp": row["min_temp"],
+            "rainfall": row["rainfall"],
+            "relative_humidity": row["relative_humidity"]
+        })
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({"months": months, "years": years, "data": data})
+@app.route("/stations")
+def get_stations():
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT DISTINCT Station_Names FROM weather_data")
+    stations = [row[0] for row in cursor.fetchall()]
+    cursor.close()
+    connection.close()
+    return jsonify({"stations": stations})
+
+@app.route("/years")
+def get_years():
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT DISTINCT YEAR FROM weather_data")
+    years = [row[0] for row in cursor.fetchall()]
+    cursor.close()
+    connection.close()
+    return jsonify({"years": years})
+
+
+@app.route("/update", methods=["POST"])
+def update_data():
+    try:
+        # Parse JSON data from the request
+        data = request.json
+        month = data["month"]
+        max_temp = data["max_temp"]
+        min_temp = data["min_temp"]
+        rainfall = data["rainfall"]
+        relative_humidity = data["relative_humidity"]
+
+        print(month)
+        print(max_temp)
+        print(min_temp)
+        print(rainfall)
+        print(relative_humidity)
+
+        # Update data in the database
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        query = """
+            UPDATE weather_data
+            SET Max_Temp = %s, Min_Temp = %s, Rainfall = %s, Relative_Humidity = %s
+            WHERE Month = %s
+        """
+        cursor.execute(query, (max_temp, min_temp, rainfall, relative_humidity, month))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        return jsonify({"message": "Data updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+@app.route("/data/<string:stationName>/<int:year>")
+def get_data(stationName, year):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    query = """
+    SELECT month, Max_Temp, Min_Temp, Rainfall, Relative_Humidity
+    FROM weather_data
+    WHERE Station_Names = %s AND YEAR = %s
+    """
+    cursor.execute(query, (stationName, year))
+    weather_data = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    month_names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    data = []
+    for row in weather_data:
+        month = row["month"]
+        data.append({
+            "month": month,
+            "max_temp": row["Max_Temp"],
+            "min_temp": row["Min_Temp"],
+            "rainfall": row["Rainfall"],
+            "relative_humidity": row["Relative_Humidity"]
+        })
+    return jsonify({"station_name": stationName, "year": year, "data": data})
+
+
+@app.route("/")
+def index():
+    return render_template("weather.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)

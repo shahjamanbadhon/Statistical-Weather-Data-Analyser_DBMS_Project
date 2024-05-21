@@ -13,7 +13,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 50px auto;
             padding: 20px;
             background-color: #fff;
@@ -26,7 +26,8 @@
             margin-bottom: 20px;
         }
 
-        select {
+        select,
+        input {
             width: 100%;
             padding: 10px;
             font-size: 16px;
@@ -36,12 +37,18 @@
             box-sizing: border-box;
         }
 
-        #linechart_material {
-            margin-top: 20px;
-            width: 100%;
-            height: 500px;
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
         }
 
+        .chart {
+
+            width: fit-content;
+            min-height: 10px;
+
+            overflow-x: auto;
+        }
 
         .navigateBtn {
             padding: 8px 16px;
@@ -61,29 +68,74 @@
 <body>
     <div class="container">
         <h1>Weather Station Data</h1>
-        <select id="stationSelector" onchange="drawCurveTypes(this.value)"></select>
-        <div id="linechart_material"></div>
+        <select id="stationSelector1" onchange="drawCurveTypes(this.value, 'chart1')"></select>
+        <select id="stationSelector2" onchange="drawCurveTypes(this.value, 'chart2')"></select>
+        <label for="startYear">Start Year:</label>
+        <select id="startYear"></select>
+        <label for="endYear">End Year:</label>
+        <select id="endYear"></select>
+        <button id="searchButton" class="navigateBtn">Search</button>
+
+        <div class="chart-container">
+            <div id="chart1" class="chart"></div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <div id="chart2" class="chart"></div>
+        </div>
         <button id="navigateToUpdateScreen" class="navigateBtn"> Go to Update Screen</button>
     </div>
     <script>
-        document.getElementById("navigateToUpdateScreen").addEventListener("click", function() {
 
+
+        fetch('/years')
+            .then(response => response.json())
+            .then(({ years }) => {
+                var dropdown = document.getElementById('startYear');
+                years.forEach(year => {
+                    var option = document.createElement('option');
+                    option.text = year;
+                    option.value = year;
+                    dropdown.add(option);
+                });
+            });
+
+
+
+        fetch('/years')
+            .then(response => response.json())
+            .then(({ years }) => {
+                var dropdown = document.getElementById('endYear');
+                years.forEach(year => {
+                    var option = document.createElement('option');
+                    option.text = year;
+                    option.value = year;
+                    dropdown.add(option);
+                });
+            });
+
+        document.getElementById("navigateToUpdateScreen").addEventListener("click", function () {
             window.location.href = 'update-data';
         });
-    </script>
-    <script type="text/javascript">
-
-
 
         google.charts.load('current', {
             packages: ['corechart', 'line']
         });
 
-        function drawCurveTypes(stationName) {
-            fetch(`/data/${stationName}`)
+        function drawCurveTypes(stationName, chartElementId) {
+            var startYear = document.getElementById("startYear").value;
+            var endYear = document.getElementById("endYear").value;
+
+            var url = `/data/${stationName}`;
+            if (startYear && endYear) {
+                url += `?start_year=${startYear}&end_year=${endYear}`;
+            }
+
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
-
                     var jsonData = data;
 
                     var dataTable = new google.visualization.DataTable();
@@ -105,11 +157,16 @@
                             title: 'Weather information of Bangladesh',
                             subtitle: '63 years data'
                         },
-                        width: '100%',
-                        height: 500
+                        width: 1000, // Adjust width to accommodate all months
+                        height: 500,
+                        hAxis: {
+                            title: 'Month',
+                            slantedText: true, // Slant text to fit more months
+                            slantedTextAngle: 45 // Angle for slanted text
+                        }
                     };
 
-                    var chart = new google.charts.Line(document.getElementById('linechart_material'));
+                    var chart = new google.charts.Line(document.getElementById(chartElementId));
                     chart.draw(dataTable, google.charts.Line.convertOptions(options));
                 })
                 .catch(error => console.error('Error fetching data:', error));
@@ -117,21 +174,39 @@
 
         fetch('/stations')
             .then(response => response.json())
-            .then(({
-                stations
-            }) => {
-                var dropdown = document.getElementById('stationSelector');
+            .then(({ stations }) => {
+                var dropdown1 = document.getElementById('stationSelector1');
+                var dropdown2 = document.getElementById('stationSelector2');
                 stations.forEach(station => {
-                    var option = document.createElement('option');
-                    option.text = station;
-                    option.value = station;
-                    dropdown.add(option);
+                    var option1 = document.createElement('option');
+                    option1.text = station;
+                    option1.value = station;
+                    dropdown1.add(option1);
+
+                    var option2 = document.createElement('option');
+                    option2.text = station;
+                    option2.value = station;
+                    dropdown2.add(option2);
                 });
+
+                // Trigger the initial drawing of the charts with the first station
+                if (stations.length > 0) {
+                    drawCurveTypes(stations[0], 'chart1');
+                    drawCurveTypes(stations[0], 'chart2');
+                }
             });
 
+        document.getElementById("searchButton").addEventListener("click", function () {
+            var station1 = document.getElementById('stationSelector1').value;
+            var station2 = document.getElementById('stationSelector2').value;
+            drawCurveTypes(station1, 'chart1');
+            drawCurveTypes(station2, 'chart2');
+        });
+
         google.charts.setOnLoadCallback(() => {
-            var firstStation = document.getElementById('stationSelector').value;
-            drawCurveTypes(firstStation);
+            var firstStation = document.getElementById('stationSelector1').value;
+            drawCurveTypes(firstStation, 'chart1');
+            drawCurveTypes(firstStation, 'chart2');
         });
     </script>
 </body>
